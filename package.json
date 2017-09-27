@@ -5,9 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "prepublish": "npm run build",
-    "build": "babel src --out-dir dist",
+    "build": "babel src --presets babel-preset-env --out-dir dist",
     "test": "mocha",
-    "test:cover": "nyc mocha"
+    "test:cover": "nyc --reporter=lcov mocha"
   },
   "repository": {
     "type": "git",
