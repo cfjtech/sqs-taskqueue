@@ -1,0 +1,30 @@
+{
+  "name": "sqs-taskqueue",
+  "version": "0.0.1",
+  "description": "A quick way to replace Kue with Amazon SQS",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dungbx/sqs-taskqueue.git"
+  },
+  "keywords": [
+    "kue",
+    "aws",
+    "sqs",
+    "node",
+    "javascript",
+    "es6"
+  ],
+  "author": "Derek Bui",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dungbx/sqs-taskqueue/issues"
+  },
+  "homepage": "https://github.com/dungbx/sqs-taskqueue#readme",
+  "dependencies": {
+    "aws-sdk": "^2.122.0"
+  }
+}

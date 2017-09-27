@@ -1,2 +1,2 @@
 # kue-sqs
-A quick way to replace Kue stack with Amazon SQS
+A quick way to replace Kue with Amazon SQS
