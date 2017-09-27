@@ -1,3 +1,5 @@
+require("babel-polyfill")
+
 const EventEmitter = require('events')
 const AWS = require('aws-sdk')
 

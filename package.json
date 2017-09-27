@@ -28,7 +28,8 @@
   },
   "homepage": "https://github.com/dungbx/sqs-taskqueue#readme",
   "dependencies": {
-    "aws-sdk": "^2.122.0"
+    "aws-sdk": "^2.122.0",
+    "babel-polyfill": "^6.26.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
