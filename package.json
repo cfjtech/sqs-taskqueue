@@ -2,9 +2,12 @@
   "name": "sqs-taskqueue",
   "version": "0.0.1",
   "description": "A quick way to replace Kue with Amazon SQS",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "mocha"
+    "prepublish": "npm run build",
+    "build": "babel index.js --presets babel-preset-es2015 --out-dir dist",
+    "test": "mocha --compilers js:babel-register",
+    "test:cover": "nyc mocha"
   },
   "repository": {
     "type": "git",
@@ -28,6 +31,8 @@
     "aws-sdk": "^2.122.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
     "mocha": "^3.5.3",
     "nyc": "^11.2.1"
   }
