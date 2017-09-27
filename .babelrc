@@ -1,6 +1,7 @@
 {
-  "presets": ["es2015"],
-  "plugins": [
-    "transform-regenerator"
+  "presets": [
+    ["env", {
+      "useBuiltIns": true
+    }]
   ]
 }
