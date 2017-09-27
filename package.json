@@ -6,7 +6,7 @@
   "scripts": {
     "prepublish": "npm run build",
     "build": "babel src --out-dir dist",
-    "test": "mocha --compilers js:babel-register",
+    "test": "mocha",
     "test:cover": "nyc mocha"
   },
   "repository": {

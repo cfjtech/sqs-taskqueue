@@ -10,15 +10,15 @@
 var SQSWorker = require('../dist/index');
 var assert = require('assert');
 
-describe('SQSWorker', () => {
+describe('SQSWorker', function() {
 
-  describe('greeting.hello()', () => {
+  describe('greeting.hello()', function () {
 
-    it('should return welcome message for a guest user', () => {
+    it('should return welcome message for a guest user', function () {
       assert(true)
     });
 
-    it('should return welcome message for a named user', () => {
+    it('should return welcome message for a named user', function () {
       assert(true)
     });
 
