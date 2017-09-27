@@ -12,16 +12,40 @@ var assert = require('assert');
 
 describe('SQSWorker', function() {
 
-  describe('greeting.hello()', function () {
-
-    it('should return welcome message for a guest user', function () {
-      assert(true)
+    it('should create task', function () {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      worker
+        .create()
+        .removeOnComplete()
+        .ttl(30)
+        .attempts(10)
+        .delay(3)
+        .save()
     });
 
-    it('should return welcome message for a named user', function () {
-      assert(true)
+    it('should process task', function (cb) {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      worker.process('hi', function() {
+        cb()
+      })
+      worker.receiveMessage(null, {
+        Messages: [{
+          MessageAttributes: {"Command": {"StringValue": "hi"}},
+          ReceiptHandle: 'receipt-handle',
+          MessageId: '123',
+          Body: '{}'
+        }]
+      })
     });
 
-  });
+    it('should shutdown', function (cb) {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      worker.shutdown(5, cb)
+    });
+
+    it('should watchStuckJobs', function () {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      worker.watchStuckJobs()
+    });
 
 });
