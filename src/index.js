@@ -1,21 +1,14 @@
-require("babel-polyfill")
-
 const EventEmitter = require('events')
 const AWS = require('aws-sdk')
 
 class SQSJob {
-  constructor(sqs, url, command, data) {
-    this.sqs = sqs
+  constructor(sqsConfig, queueBase, queuePrefix, command, data) {
+    this.sqs = new AWS.SQS(sqsConfig)
+    this.queueUrl = queueBase + queuePrefix + '_' + command
 
     this.params = {
-      MessageAttributes: {
-        "Command": {
-          DataType: "String",
-          StringValue: command
-        }
-      },
       MessageBody: JSON.stringify(data || {}),
-      QueueUrl: url
+      QueueUrl: this.queueUrl
     }
   }
 
@@ -37,25 +30,56 @@ class SQSJob {
   }
 
   save(cb) {
-    return this.sqs.sendMessage(this.params, function(err) {
-      if (cb) return cb(err)
-      if (err) throw err
-    })
+    if (typeof cb === 'function') {
+      this.sqs.sendMessage(this.params, function(err) {
+        if (err) return cb(err)
+        cb()
+      })
+    } else {
+      return this.sqs.sendMessage(this.params).promise()
+    }
   }
 }
 
-class SQSWorker extends EventEmitter {
-  constructor(sqsConfig, queueURL) {
-    super()
-
-    this.sqs = new AWS.SQS(sqsConfig)
-    this.queueURL = queueURL
-
-    this.processMessage = false
-
-    this.commands = []
+class SQSQueue {
+  constructor(worker, command, func) {
+    this.sqs = new AWS.SQS(worker.sqsConfig)
+    this.worker = worker
+    this.sqsConfig = worker.sqsConfig
+    this.queueName = worker.queuePrefix + '_' + command
+    this.queueUrl = worker.queueBase + this.queueName
+    this.command = command
+    this.func = func
   }
+  start() {
+    return (async () => {
+      try {
+        await this.sqs.getQueueUrl({QueueName: this.queueName}).promise()
+      } catch (e) {
+        var params = {
+          QueueName: this.queueName,
+          Attributes: {
+            VisibilityTimeout: '7200', // 2 hours
+            ReceiveMessageWaitTimeSeconds: '10'
+          }
+        }
+        try {
+          await this.sqs.createQueue(params).promise()
+        } catch (e) {
+          throw e
+        }
+      }
 
+      this.processMessage = true
+      this.poll()
+    })()
+      .catch(function(err) {
+        throw err
+      })
+  }
+  stop() {
+    this.processMessage = false
+  }
   receiveMessage(err, data) {
     if (err) throw err
 
@@ -63,11 +87,11 @@ class SQSWorker extends EventEmitter {
 
     var message = data.Messages[0]
 
-    var func = this.commands[message.MessageAttributes.Command.StringValue]
-
     var job = {
       data: JSON.parse(message.Body)
     }
+
+    var func = this.func
 
     const execFunc = () => {
       return new Promise((resolve, reject) => {
@@ -78,66 +102,67 @@ class SQSWorker extends EventEmitter {
       })
     }
 
-    const deleteMessage = () => {
-      return new Promise((resolve, reject) => {
-        this.sqs.deleteMessage(deleteParams, function(err, data) {
-          if (err) return reject(err)
-          resolve(data)
-        })
-      })
-    }
-
     var deleteParams = {
-      QueueUrl: this.queueURL,
+      QueueUrl: this.queueUrl,
       ReceiptHandle: data.Messages[0].ReceiptHandle
     }
 
     return (async () => {
       try {
         await execFunc()
-        await deleteMessage()
+      } catch (err) {
+        this.worker.emit('error', err)
       }
-      catch (err) {
-        this.emit('error', err)
-      }
-      finally {
-        this.poll()
-      }
-    })()
-  }
 
-  create(command, data) {
-    return new SQSJob(this.sqs, this.queueURL, command, data)
+      await this.sqs.deleteMessage(deleteParams).promise()
+      this.poll()
+    })().catch(function(err) {
+      throw err
+    })
   }
-
   poll() {
     if (!this.processMessage) return
 
     var params = {
       AttributeNames: [
-        "SentTimestamp"
+        'SentTimestamp'
       ],
       MaxNumberOfMessages: 1,
       MessageAttributeNames: [
-        "All"
+        'All'
       ],
-      QueueUrl: this.queueURL
+      QueueUrl: this.queueUrl
     };
 
     this.sqs.receiveMessage(params, this.receiveMessage.bind(this));
   }
+}
+
+class SQSWorker extends EventEmitter {
+  constructor(sqsConfig, queueBase, queuePrefix) {
+    super()
+    this.sqsConfig = sqsConfig
+    this.queueBase = queueBase
+    this.queuePrefix = queuePrefix
+
+    this.queues = []
+  }
+
+  create(command, data) {
+    return new SQSJob(this.sqsConfig, this.queueBase, this.queuePrefix, command, data)
+  }
 
   process(command, func) {
-    this.commands[command] = func
-
-    if (!this.processMessage) {
-      this.processMessage = true
-      this.poll()
-    }
+    var queue = new SQSQueue(this, command, func)
+    queue.start()
+    this.queues.push(queue)
+    return queue
   }
 
   shutdown(delay, callback) {
-    this.processMessage = false
+    this.queues.forEach((queue) => {
+      queue.stop()
+    })
     setTimeout(callback, delay)
     return this
   }
