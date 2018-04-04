@@ -26,6 +26,10 @@ class SQSJob {
     return this
   }
 
+  priority() {
+    return this
+  }
+
   delay(miliseconds) {
     this.params.DelaySeconds = miliseconds / 1000
     return this
