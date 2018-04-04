@@ -23,11 +23,9 @@ describe('SQSWorker', function() {
         .save()
     });
 
-    it('should process task', function (cb) {
+    it('should process task', function () {
       var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
-      worker.process('hi', function() {
-        cb()
-      })
+      worker.process('hi', function() {})
     });
 
     it('should shutdown', function (cb) {
