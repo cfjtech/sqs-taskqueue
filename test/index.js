@@ -28,14 +28,6 @@ describe('SQSWorker', function() {
       worker.process('hi', function() {
         cb()
       })
-      worker.receiveMessage(null, {
-        Messages: [{
-          MessageAttributes: {"Command": {"StringValue": "hi"}},
-          ReceiptHandle: 'receipt-handle',
-          MessageId: '123',
-          Body: '{}'
-        }]
-      })
     });
 
     it('should shutdown', function (cb) {
