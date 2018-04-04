@@ -2,8 +2,8 @@ const EventEmitter = require('events')
 const AWS = require('aws-sdk')
 
 class SQSJob {
-  constructor(sqsConfig, queueBase, queuePrefix, command, data) {
-    this.sqs = new AWS.SQS(sqsConfig)
+  constructor(worker, queueBase, queuePrefix, command, data) {
+    this.sqs = worker.sqs
     this.queueUrl = queueBase + queuePrefix + '_' + command
 
     this.params = {
@@ -43,82 +43,70 @@ class SQSJob {
 
 class SQSQueue {
   constructor(worker, command, func) {
-    this.sqs = new AWS.SQS(worker.sqsConfig)
+    this.sqs = worker.sqs
     this.worker = worker
-    this.sqsConfig = worker.sqsConfig
     this.queueName = worker.queuePrefix + '_' + command
     this.queueUrl = worker.queueBase + this.queueName
     this.command = command
     this.func = func
   }
-  start() {
-    return (async () => {
-      try {
-        await this.sqs.getQueueUrl({QueueName: this.queueName}).promise()
-      } catch (e) {
-        var params = {
-          QueueName: this.queueName,
-          Attributes: {
-            VisibilityTimeout: '7200', // 2 hours
-            ReceiveMessageWaitTimeSeconds: '10'
-          }
-        }
-        try {
-          await this.sqs.createQueue(params).promise()
-        } catch (e) {
-          throw e
+  async start() {
+    try {
+      await this.sqs.getQueueUrl({QueueName: this.queueName}).promise()
+    } catch (e) {
+      var params = {
+        QueueName: this.queueName,
+        Attributes: {
+          VisibilityTimeout: '7200', // 2 hours
+          ReceiveMessageWaitTimeSeconds: '10'
         }
       }
+      try {
+        await this.sqs.createQueue(params).promise()
+      } catch (e) {
+        throw e
+      }
+    }
 
-      this.processMessage = true
-      this.poll()
-    })()
-      .catch(function(err) {
-        throw err
-      })
+    this.processMessage = true
+    this.poll()
   }
   stop() {
     this.processMessage = false
   }
-  receiveMessage(err, data) {
+  async receiveMessage(err, data) {
     if (err) throw err
 
     if (!data.Messages) return this.poll()
 
-    var message = data.Messages[0]
-
-    var job = {
-      data: JSON.parse(message.Body)
-    }
-
     var func = this.func
 
-    const execFunc = () => {
+    const jobs = data.Messages.map((message) => {
+      var job = {
+        data: JSON.parse(message.Body)
+      }
+
       return new Promise((resolve, reject) => {
         func(job, function(err) {
           if (err) return reject(err)
           resolve()
         })
       })
+    })
+
+    try {
+      await Promise.all(jobs)
+    } catch (err) {
+      this.worker.emit('error', err)
     }
 
     var deleteParams = {
       QueueUrl: this.queueUrl,
-      ReceiptHandle: data.Messages[0].ReceiptHandle
+      Entries: data.Messages.map(m => { return { Id: m.MessageId, ReceiptHandle: m.ReceiptHandle}})
     }
 
-    return (async () => {
-      try {
-        await execFunc()
-      } catch (err) {
-        this.worker.emit('error', err)
-      }
-
-      await this.sqs.deleteMessage(deleteParams).promise()
-      this.poll()
-    })().catch(function(err) {
-      throw err
-    })
+    await this.sqs.deleteMessageBatch(deleteParams).promise()
+    this.poll()
   }
   poll() {
     if (!this.processMessage) return
@@ -127,7 +115,7 @@ class SQSQueue {
       AttributeNames: [
         'SentTimestamp'
       ],
-      MaxNumberOfMessages: 1,
+      MaxNumberOfMessages: 10,
       MessageAttributeNames: [
         'All'
       ],
@@ -141,7 +129,7 @@ class SQSQueue {
 class SQSWorker extends EventEmitter {
   constructor(sqsConfig, queueBase, queuePrefix) {
     super()
-    this.sqsConfig = sqsConfig
+    this.sqs = new AWS.SQS(sqsConfig)
     this.queueBase = queueBase
     this.queuePrefix = queuePrefix
 
@@ -149,7 +137,7 @@ class SQSWorker extends EventEmitter {
   }
 
   create(command, data) {
-    return new SQSJob(this.sqsConfig, this.queueBase, this.queuePrefix, command, data)
+    return new SQSJob(this, this.queueBase, this.queuePrefix, command, data)
   }
 
   process(command, func) {
