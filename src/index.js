@@ -26,10 +26,6 @@ class SQSJob {
     return this
   }
 
-  priority() {
-    return this
-  }
-
   delay(miliseconds) {
     this.params.DelaySeconds = miliseconds / 1000
     return this
@@ -47,8 +43,10 @@ class SQSJob {
   }
 }
 
-class SQSQueue {
+class SQSQueue extends EventEmitter {
   constructor(worker, command, func) {
+    super()
+
     this.sqs = worker.sqs
     this.worker = worker
     this.queueName = worker.queuePrefix + '_' + command
@@ -74,8 +72,17 @@ class SQSQueue {
       }
     }
 
+    let res = await this.sqs.getQueueAttributes({
+      QueueUrl: this.queueUrl,
+      AttributeNames: ['All']
+    }).promise()
+
+    this.attributes = res.Attributes
+
+    this.on('poll', this.poll)
+
     this.processMessage = true
-    this.poll()
+    this.emit('poll')
   }
   stop() {
     this.processMessage = false
@@ -83,21 +90,42 @@ class SQSQueue {
   async receiveMessage(err, data) {
     if (err) throw err
 
-    if (!data.Messages) return this.poll()
+    if (!data.Messages) return this.emit('poll')
 
     var func = this.func
+    var queueName = this.queueName
+    var visibilityTimeout = this.attributes.VisibilityTimeout || 7200
+    var entries = []
 
     const jobs = data.Messages.map((message) => {
       var job = {
         data: JSON.parse(message.Body)
       }
 
-      return new Promise((resolve, reject) => {
+      let timeout = new Promise((resolve) => {
+        let id = setTimeout(() => {
+          clearTimeout(id)
+          let err = new Error('Timed out in '+ visibilityTimeout + 's. Queue: ' + queueName)
+          this.worker.emit('error', err)
+          resolve()
+        }, visibilityTimeout * 1000)
+      })
+
+      let promise = new Promise((resolve) => {
         func(job, function(err) {
-          if (err) return reject(err)
+          if (err) {
+            this.worker.emit('error', err)
+            return resolve()
+          }
+          entries.push({ Id: message.MessageId, ReceiptHandle: message.ReceiptHandle})
           resolve()
         })
       })
+
+      return Promise.race([
+        promise,
+        timeout
+      ])
     })
 
     try {
@@ -108,11 +136,16 @@ class SQSQueue {
 
     var deleteParams = {
       QueueUrl: this.queueUrl,
-      Entries: data.Messages.map(m => { return { Id: m.MessageId, ReceiptHandle: m.ReceiptHandle}})
+      Entries: entries
     }
 
-    await this.sqs.deleteMessageBatch(deleteParams).promise()
-    this.poll()
+    try {
+      await this.sqs.deleteMessageBatch(deleteParams).promise()
+    } catch (err) {
+      this.worker.emit('error', err)
+    }
+
+    this.emit('poll')
   }
   poll() {
     if (!this.processMessage) return
@@ -126,9 +159,9 @@ class SQSQueue {
         'All'
       ],
       QueueUrl: this.queueUrl
-    };
+    }
 
-    this.sqs.receiveMessage(params, this.receiveMessage.bind(this));
+    this.sqs.receiveMessage(params, this.receiveMessage.bind(this))
   }
 }
 
@@ -166,4 +199,4 @@ class SQSWorker extends EventEmitter {
   }
 }
 
-module.exports = SQSWorker;
+module.exports = SQSWorker
