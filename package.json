@@ -1,6 +1,6 @@
 {
   "name": "sqs-taskqueue",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "description": "A quick way to replace Kue with Amazon SQS",
   "main": "dist/index.js",
   "scripts": {
