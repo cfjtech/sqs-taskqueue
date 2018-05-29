@@ -96,28 +96,36 @@ class SQSQueue extends EventEmitter {
     var queueName = this.queueName
     var visibilityTimeout = this.attributes.VisibilityTimeout || 7200
     var entries = []
+    var worker = this.worker
 
     const jobs = data.Messages.map((message) => {
       var job = {
         data: JSON.parse(message.Body)
       }
 
+      var id
+
       let timeout = new Promise((resolve) => {
-        let id = setTimeout(() => {
-          clearTimeout(id)
+        id = setTimeout(() => {
           let err = new Error('Timed out in '+ visibilityTimeout + 's. Queue: ' + queueName)
-          this.worker.emit('error', err)
+          worker.emit('error', err)
           resolve()
         }, visibilityTimeout * 1000)
       })
 
       let promise = new Promise((resolve) => {
         func(job, function(err) {
+          clearTimeout(id)
           if (err) {
-            this.worker.emit('error', err)
-            return resolve()
+            worker.emit('error', err, {
+              extra: {
+                queueName: queueName,
+                job: job.data,
+              }
+            })
+          } else {
+            entries.push({ Id: message.MessageId, ReceiptHandle: message.ReceiptHandle})
           }
-          entries.push({ Id: message.MessageId, ReceiptHandle: message.ReceiptHandle})
           resolve()
         })
       })
@@ -131,16 +139,17 @@ class SQSQueue extends EventEmitter {
     try {
       await Promise.all(jobs)
     } catch (err) {
-      this.worker.emit('error', err)
-    }
-
-    var deleteParams = {
-      QueueUrl: this.queueUrl,
-      Entries: entries
+      worker.emit('error', err)
     }
 
     try {
-      await this.sqs.deleteMessageBatch(deleteParams).promise()
+      if (entries.length) {
+        var deleteParams = {
+          QueueUrl: this.queueUrl,
+          Entries: entries
+        }
+        await this.sqs.deleteMessageBatch(deleteParams).promise()
+      }
     } catch (err) {
       this.worker.emit('error', err)
     }
