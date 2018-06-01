@@ -7,14 +7,21 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-var SQSWorker = require('../dist/index');
-var SQSQueue = require('../dist/queue');
-var assert = require('assert');
+const SQSWorker = require('../dist/index')
+const SQSQueue = require('../dist/queue')
+const assert = require('assert')
+const AWS = require('aws-sdk')
+
+let sqs = new AWS.SQS({
+  region: 'ap-northeast-1',
+  accessKeyId: '',
+  secretAccessKey: ''
+})
 
 describe('SQSWorker', function() {
 
     it('should create task', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       worker
         .create()
         .removeOnComplete()
@@ -25,17 +32,17 @@ describe('SQSWorker', function() {
     });
 
     it('should process task', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       worker.process('hi', function() {})
     });
 
     it('should shutdown', function (cb) {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       worker.shutdown(5, cb)
     });
 
     it('should watchStuckJobs', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       worker.watchStuckJobs()
     });
 
@@ -44,21 +51,21 @@ describe('SQSWorker', function() {
 describe('SQSQueue', function() {
 
     it('should start polling', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       var queue = new SQSQueue(worker, 'dummy', function() {})
 
       queue.start()
     });
 
     it('should stop polling', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       var queue = new SQSQueue(worker, 'dummy', function() {})
 
       queue.stop()
     });
 
     it('should receive message', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       var queue = new SQSQueue(worker, 'dummy', function(data, cb) { return cb(); })
 
       queue.attributes = {
@@ -79,7 +86,7 @@ describe('SQSQueue', function() {
     });
 
     it('should process message', function () {
-      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var worker = new SQSWorker(sqs, 'some-queue-url')
       var queue = new SQSQueue(worker, 'dummy', function() {})
       queue.attributes = {
         VisibilityTimeout: 60

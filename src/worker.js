@@ -1,13 +1,12 @@
 const EventEmitter = require('events')
-const AWS = require('aws-sdk')
 
 const SQSQueue = require('./queue')
 const SQSJob = require('./job')
 
 class SQSWorker extends EventEmitter {
-  constructor(sqsConfig, queueBase, queuePrefix) {
+  constructor(sqs, queueBase, queuePrefix) {
     super()
-    this.sqs = new AWS.SQS(sqsConfig)
+    this.sqs = sqs
     this.queueBase = queueBase
     this.queuePrefix = queuePrefix
 
