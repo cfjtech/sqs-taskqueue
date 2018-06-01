@@ -14,13 +14,19 @@ var kue = require('kue'),
 Do like this:
 
 ```js
+var AWS = require('aws-sdk')
+var sqs = new AWS.SQS({
+  region: '',
+  accessKeyId: '',
+  secretAccessKey: ''
+})
+
 var SQSWorker = require('sqs-taskqueue'),
-	queue = new SQSWorker({
-		region: 'ap-northeast-1'
-		},
-		'https://sqs.ap-northeast-1.amazonaws.com/XXXXXXXXXX/',
-		'yourapp'
-	);
+  queue = new SQSWorker(
+    sqs,
+    'https://sqs.ap-northeast-1.amazonaws.com/XXXXXXXXXX/',
+    'yourapp'
+  );
 ```
 
 The rest they are the same!!!
