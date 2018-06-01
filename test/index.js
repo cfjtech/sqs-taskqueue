@@ -8,7 +8,7 @@
  */
 
 var SQSWorker = require('../dist/index');
-var SQSQueue = require('../src/queue');
+var SQSQueue = require('../dist/queue');
 var assert = require('assert');
 
 describe('SQSWorker', function() {
