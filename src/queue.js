@@ -46,9 +46,7 @@ class SQSQueue extends EventEmitter {
   }
 
   _processPromise(message) {
-    var job = {
-      data: JSON.parse(message.Body)
-    }
+    var job = { data: JSON.parse(message.Body)}
 
     var func = this.func
     var visibilityTimeout = this.attributes.VisibilityTimeout || 7200
@@ -73,10 +71,7 @@ class SQSQueue extends EventEmitter {
       })
     })
 
-    return Promise.race([
-      promise,
-      timeout
-    ])
+    return Promise.race([ promise, timeout ])
   }
 
   async receiveMessage(err, data) {
