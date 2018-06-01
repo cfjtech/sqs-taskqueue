@@ -43,16 +43,53 @@ describe('SQSWorker', function() {
 
 describe('SQSQueue', function() {
 
-    it('should convert message', function () {
+    it('should start polling', function () {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var queue = new SQSQueue(worker, 'dummy', function() {})
+
+      queue.start()
+    });
+
+    it('should stop polling', function () {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var queue = new SQSQueue(worker, 'dummy', function() {})
+
+      queue.stop()
+    });
+
+    it('should receive message', function () {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var queue = new SQSQueue(worker, 'dummy', function(data, cb) { return cb(); })
+
+      queue.attributes = {
+        VisibilityTimeout: 1
+      }
+
+      queue.receiveMessage(null, {
+          Messages: [{
+            Body: '{}',
+            MessageId: '',
+            ReceiptHandle: '',
+          }]
+        })
+
+      queue.receiveMessage(null, {
+          Messages: []
+        })
+    });
+
+    it('should process message', function () {
       var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
       var queue = new SQSQueue(worker, 'dummy', function() {})
       queue.attributes = {
         VisibilityTimeout: 60
       }
+
       queue._processPromise({
         Body: '{}',
         MessageId: '',
         ReceiptHandle: '',
       })
     });
+
 });
