@@ -3,8 +3,8 @@ var SQSWorker = require('../src');
 // create our job queue
 
 var jobs = new SQSWorker({
-  region: 'ap-northeast-1'
     region: '',
+    accessKeyId: '',
     secretAccessKey: ''
   },
   'https://sqs.ap-northeast-1.amazonaws.com/XXXXXXXXXX/',
