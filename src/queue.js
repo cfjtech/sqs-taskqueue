@@ -56,8 +56,7 @@ class SQSQueue extends EventEmitter {
 
     let timeout = new Promise((resolve) => {
       id = setTimeout(() => {
-        let err = new Error('Timed out in '+ visibilityTimeout + 's. Queue: ' + queueName)
-        worker.emit('error', err)
+        worker.emit('error', new Error('Timed out in '+ visibilityTimeout + 's. Queue: ' + queueName))
         resolve()
       }, visibilityTimeout * 1000)
     })
@@ -66,12 +65,7 @@ class SQSQueue extends EventEmitter {
       func(job, function(err) {
         clearTimeout(id)
         if (err) {
-          worker.emit('error', err, {
-            extra: {
-              queueName: queueName,
-              job: job.data,
-            }
-          })
+          worker.emit('error', err, { extra: { queueName: queueName, job: job.data, } })
           return resolve()
         } else {
           resolve({ Id: message.MessageId, ReceiptHandle: message.ReceiptHandle})
