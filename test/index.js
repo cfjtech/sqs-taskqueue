@@ -8,6 +8,7 @@
  */
 
 var SQSWorker = require('../dist/index');
+var SQSQueue = require('../src/queue');
 var assert = require('assert');
 
 describe('SQSWorker', function() {
@@ -38,4 +39,20 @@ describe('SQSWorker', function() {
       worker.watchStuckJobs()
     });
 
+});
+
+describe('SQSQueue', function() {
+
+    it('should convert message', function () {
+      var worker = new SQSWorker({region: 'some-region'}, 'some-queue-url')
+      var queue = new SQSQueue(worker, 'dummy', function() {})
+      queue.attributes = {
+        VisibilityTimeout: 60
+      }
+      queue._processPromise({
+        Body: '{}',
+        MessageId: '',
+        ReceiptHandle: '',
+      })
+    });
 });
