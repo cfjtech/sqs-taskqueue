@@ -12,7 +12,7 @@ const SQSQueue = require('../dist/queue')
 const assert = require('assert')
 const AWS = require('aws-sdk')
 
-let sqs = new AWS.SQS({
+var sqs = new AWS.SQS({
   region: 'ap-northeast-1',
   accessKeyId: '',
   secretAccessKey: ''

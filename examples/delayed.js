@@ -2,7 +2,7 @@ const AWS = require('aws-sdk')
 const SQSWorker = require('../src');
 
 // create our job queue
-let sqs = new AWS.SQS({
+var sqs = new AWS.SQS({
   region: '',
   accessKeyId: '',
   secretAccessKey: ''
