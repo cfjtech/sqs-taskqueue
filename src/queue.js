@@ -83,7 +83,7 @@ class SQSQueue extends EventEmitter {
     var entries = []
     var worker = this.worker
 
-    const jobs = data.Messages.map(message => { this._processPromise(message) })
+    const jobs = data.Messages.map(message => this._processPromise(message) )
 
     try {
       entries = await Promise.all(jobs)
@@ -92,10 +92,11 @@ class SQSQueue extends EventEmitter {
     }
 
     try {
+      entries = entries.filter(entry => { return entry })
       if (entries.length) {
         var deleteParams = {
           QueueUrl: this.queueUrl,
-          Entries: entries.filter(entry => entry)
+          Entries: entries
         }
         await this.sqs.deleteMessageBatch(deleteParams).promise()
       }

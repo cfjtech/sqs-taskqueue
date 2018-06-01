@@ -17,6 +17,10 @@ class SQSJob {
     return this
   }
 
+  priority() {
+    return this
+  }
+
   attempts() {
     return this
   }
