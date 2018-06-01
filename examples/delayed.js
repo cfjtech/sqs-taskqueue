@@ -1,12 +1,14 @@
-var SQSWorker = require('../src');
+const AWS = require('aws-sdk')
+const SQSWorker = require('../src');
 
 // create our job queue
+var sqs = new AWS.SQS({
+  region: '',
+  accessKeyId: '',
+  secretAccessKey: ''
+})
 
-var jobs = new SQSWorker({
-    region: '',
-    accessKeyId: '',
-    secretAccessKey: ''
-  },
+var jobs = new SQSWorker(sqs,
   'https://sqs.ap-northeast-1.amazonaws.com/XXXXXXXXXX/',
   'demo'
 );
