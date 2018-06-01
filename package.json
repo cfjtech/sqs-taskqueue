@@ -1,6 +1,6 @@
 {
   "name": "sqs-taskqueue",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A quick way to replace Kue with Amazon SQS",
   "main": "dist/index.js",
   "scripts": {
@@ -27,12 +27,11 @@
     "url": "https://github.com/dungbx/sqs-taskqueue/issues"
   },
   "homepage": "https://github.com/dungbx/sqs-taskqueue#readme",
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "aws-sdk": "^2.122.0",
-    "babel-polyfill": "^6.26.0",
     "babel-cli": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-env": "^1.6.0",
     "codeclimate-test-reporter": "^0.5.0",
     "mocha": "^3.5.3",
