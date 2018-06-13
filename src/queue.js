@@ -64,10 +64,8 @@ class SQSQueue extends EventEmitter {
         clearTimeout(id)
         if (err) {
           worker.emit('error', err, { extra: { queueName: queueName, job: job.data, } })
-          resolve()
-        } else {
-          resolve({ Id: message.MessageId, ReceiptHandle: message.ReceiptHandle})
         }
+        resolve({ Id: message.MessageId, ReceiptHandle: message.ReceiptHandle})
       })
     })
 
